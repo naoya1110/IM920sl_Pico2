@@ -2,6 +2,7 @@
 
 ## 配線図
 親機・子機共通
+
 <img src="wiring_diagram.jpg" width="300">
 
 ## 設定
