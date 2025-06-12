@@ -87,14 +87,18 @@ void loop() {
       valueY = map(valueY, 50, 200, 0, 255);
 
       // LEDにPWM出力（明るさ制御）
-      analogWrite(PIN_LED_X, valueX);
-      analogWrite(PIN_LED_Y, valueY);
+      // analogWrite(PIN_LED_X, valueX);
+      // analogWrite(PIN_LED_Y, valueY);
 
       // スイッチの状態に応じてLEDをON/OFF
       if (hexStringValueSW == "01") {
         digitalWrite(PIN_LED_SW, HIGH);  // スイッチが押されたとき
+        digitalWrite(PIN_LED_X, HIGH);
+        digitalWrite(PIN_LED_Y, HIGH);
       } else {
         digitalWrite(PIN_LED_SW, LOW);   // スイッチが離されたとき
+        digitalWrite(PIN_LED_X, LOW);
+        digitalWrite(PIN_LED_Y, LOW);
       }
     }
   }
