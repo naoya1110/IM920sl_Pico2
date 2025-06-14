@@ -1,19 +1,20 @@
 // IM920sLを送信機(親機)として使用する
 
 // 変数宣言
-String c;           // 受信データ（文字列）格納用
-String command;     // 送信コマンド（文字列）格納用
-int cnt = 0;        // カウンタ（未使用）
+String c;        // 受信データ（文字列）格納用
+String command;  // 送信コマンド（文字列）格納用
+int cnt = 0;     // カウンタ（未使用）
 
 // ピン定義
 const int PIN_ADC0 = 26;  // GPIO26：アナログ入力0（ジョイスティックYなど）
 const int PIN_ADC1 = 27;  // GPIO27：アナログ入力1（ジョイスティックXなど）
-const int PIN_SW   = 22;  // GPIO22：スイッチ入力（ボタン）
+const int PIN_SW = 22;    // GPIO22：スイッチ入力（ボタン）
+const int LED_PIN = 25;
 
 // IM920にコマンドを送信し、応答を表示する関数
 void sendCommand(String command) {
-  Serial1.print(command);      // コマンド送信
-  Serial1.print("\r");         // CR（キャリッジリターン）で終了
+  Serial1.print(command);              // コマンド送信
+  Serial1.print("\r");                 // CR（キャリッジリターン）で終了
   Serial.println("Sent: " + command);  // シリアルモニタに送信内容を表示
 
   String c = Serial1.readStringUntil('\r');  // 応答を1行（\rまで）読み取る
@@ -25,16 +26,16 @@ void sendCommand(String command) {
 
 // 初期設定 -------------------------------------------------------------------
 void setup() {
-  delay(1000);               // 起動安定のための待機
-  Serial.begin(19200);       // PCとのシリアル通信開始
+  delay(1000);          // 起動安定のための待機
+  Serial.begin(19200);  // PCとのシリアル通信開始
   delay(1000);
 
-  pinMode(PIN_SW, INPUT);    // スイッチピンを入力に設定
-  pinMode(PIN_LED, OUTPUT);  // LEDピンを出力に設定（PIN_LEDは別で定義が必要）
+  pinMode(PIN_SW, INPUT);        // スイッチピンを入力に設定
+  pinMode(LED_BUILTIN, OUTPUT);  // LEDピンを出力に設定（PIN_LEDは別で定義が必要）
 
   Serial.println("Operating IM920sL as a transmitter.....\n");
 
-  Serial1.begin(19200);      // IM920とのシリアル通信開始
+  Serial1.begin(19200);  // IM920とのシリアル通信開始
   delay(1000);
 
   // IM920からの初期応答をすべて読み出して表示
@@ -85,4 +86,25 @@ void loop() {
 
   // IM920にコマンドを送信
   sendCommand(command);
+
+  // 受信データが12バイト以上ある場合に処理開始
+  if (Serial1.available() >= 12) {
+    String buf = Serial1.readStringUntil('\r');  // \rまでを1行として読み取る
+
+    // 親機（0001）からのデータか確認
+    if (buf.substring(4, 8) == "0002") {
+      Serial.println(buf);  // 受信した生データを表示
+      // 受信データから16進の各値を抽出（TXDAのデータ部）
+      String receivedHexStringValueSW = buf.substring(13, 15);  // SW（2文字）
+
+      // 通信の確認（スイッチの状態に応じてLEDをON/OFF）
+      if (receivedHexStringValueSW == "01") {
+        digitalWrite(LED_BUILTIN, HIGH);  // スイッチが押されたとき
+      } else {
+        digitalWrite(LED_BUILTIN, LOW);  // スイッチが押されたとき
+      }
+    }
+  }
+  delay(100);
+  digitalWrite(LED_BUILTIN, LOW);
 }

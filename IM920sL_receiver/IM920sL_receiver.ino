@@ -1,5 +1,13 @@
 // IM920sLを受信機(子機)として使用する
 
+#include <Arduino.h>
+
+#define TONE_USE_INT
+#define TONE_PITCH 440
+
+// https://github.com/RodrigoDornelles/arduino-tone-pitch
+#include <TonePitch.h>
+
 // 変数宣言
 String c;        // 受信データ（文字列）格納用
 String command;  // 送信コマンド（文字列）格納用（このスケッチでは主に設定用）
@@ -9,24 +17,25 @@ int cnt = 0;     // カウンタ（未使用）
 const int PIN_LED_X = 20;   // LED X方向出力用
 const int PIN_LED_Y = 18;   // LED Y方向出力用
 const int PIN_LED_SW = 17;  // スイッチ表示用LED出力
+const int PIN_BUZZER = 15;
 
 // IM920にコマンドを送信し、応答を受け取る関数
 void sendCommand(String command) {
-  Serial1.print(command);       // コマンド送信
-  Serial1.print("\r");          // 終端にCRを追加
+  Serial1.print(command);  // コマンド送信
+  Serial1.print("\r");     // 終端にCRを追加
   Serial.println("Sent: " + command);
 
   String c = Serial1.readStringUntil('\r');  // 応答を読み込み
   c.trim();                                  // 前後の空白/改行などを除去
   Serial.println("Response: " + c);          // 応答を表示
   Serial.println("");
-  delay(500);                                // 通信間隔調整
+  delay(100);  // 通信間隔調整
 }
 
 // 初期設定 -------------------------------------------------------------------
 void setup() {
-  delay(1000);                 // 電源投入時の安定化
-  Serial.begin(19200);         // USBシリアル開始
+  delay(1000);          // 電源投入時の安定化
+  Serial.begin(19200);  // USBシリアル開始
   delay(1000);
 
   // LEDピンを出力に設定
@@ -36,7 +45,7 @@ void setup() {
 
   Serial.println("Operating IM920sL as a receiver.....\n");
 
-  Serial1.begin(19200);        // IM920とのシリアル通信開始
+  Serial1.begin(19200);  // IM920とのシリアル通信開始
   delay(1000);
 
   // 受信バッファが残っていればクリア
@@ -67,12 +76,12 @@ void loop() {
 
     // 親機（0001）からのデータか確認
     if (buf.substring(4, 8) == "0001") {
-      
+
       Serial.println(buf);  // 受信した生データを表示
 
       // 受信データから16進の各値を抽出（TXDAのデータ部）
-      String hexStringValueX  = buf.substring(13, 15);  // X軸（2文字）
-      String hexStringValueY  = buf.substring(15, 17);  // Y軸（2文字）
+      String hexStringValueX = buf.substring(13, 15);   // X軸（2文字）
+      String hexStringValueY = buf.substring(15, 17);   // Y軸（2文字）
       String hexStringValueSW = buf.substring(17, 19);  // SW（2文字）
 
       // 抽出結果を確認出力
@@ -95,11 +104,17 @@ void loop() {
         digitalWrite(PIN_LED_SW, HIGH);  // スイッチが押されたとき
         digitalWrite(PIN_LED_X, HIGH);
         digitalWrite(PIN_LED_Y, HIGH);
+        tone(PIN_BUZZER, 4000); // ブザーを鳴らす
       } else {
-        digitalWrite(PIN_LED_SW, LOW);   // スイッチが離されたとき
+        digitalWrite(PIN_LED_SW, LOW);  // スイッチが離されたとき
         digitalWrite(PIN_LED_X, LOW);
         digitalWrite(PIN_LED_Y, LOW);
+        noTone(PIN_BUZZER); // // ブザーを止める
       }
+
+      // 通信確認（受信したSW情報をそのまま返信）
+      command = "TXDA " + hexStringValueSW;
+      sendCommand(command);
     }
   }
 }
